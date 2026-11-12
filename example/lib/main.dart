@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gn_fancyleds_card/flutter_gn_fancyleds_card.dart';
+import 'package:flutter_gn_side_navigation_rail/flutter_gn_side_navigation_rail.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,95 +11,130 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Fancy LED Card Example',
+      title: 'GN Side Navigation Rail Demo',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
           brightness: Brightness.dark,
         ),
+        scaffoldBackgroundColor: const Color(0xff121212),
         useMaterial3: true,
       ),
-      home: const ExampleHome(),
+      home: const ExampleHomeScreen(),
     );
   }
 }
 
-class ExampleHome extends StatefulWidget {
-  const ExampleHome({super.key});
+class ExampleHomeScreen extends StatefulWidget {
+  const ExampleHomeScreen({super.key});
 
   @override
-  State<ExampleHome> createState() => _ExampleHomeState();
+  State<ExampleHomeScreen> createState() => _ExampleHomeScreenState();
 }
 
-class _ExampleHomeState extends State<ExampleHome> {
+class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
+  int _selectedIndex = 0;
+
+  final List<SideBarItem> _sidebarItems = [
+    SideBarItem(
+      iconSelected: Icons.dashboard,
+      iconUnselected: Icons.dashboard_outlined,
+      text: 'Dashboard',
+    ),
+    SideBarItem(
+      iconSelected: Icons.analytics,
+      iconUnselected: Icons.analytics_outlined,
+      text: 'Analytics',
+    ),
+    SideBarItem(
+      iconSelected: Icons.notifications,
+      iconUnselected: Icons.notifications_none,
+      text: 'Notifications',
+    ),
+    SideBarItem(
+      iconSelected: Icons.chat_bubble,
+      iconUnselected: Icons.chat_bubble_outline,
+      text: 'Messages',
+    ),
+    SideBarItem(
+      iconSelected: Icons.settings,
+      iconUnselected: Icons.settings_outlined,
+      text: 'Settings',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final activeItem = _sidebarItems[_selectedIndex];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fancy LED Card'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // The Fancy Card
-              FancyLedCard(
-                glowRadius: 50,
-                borderWidth: 2,
-                child: Container(
-                  width: 320,
-                  height: 180,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.blue,
-                        Colors.blueAccent,
-                        Colors.purple,
-                        Colors.pink,
-                      ],
-                    ),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+      body: Row(
+        children: [
+          SideBarAnimated(
+            mainLogoImage: 'assets/logo.png',
+            widthSwitch: 700,
+            sidebarItems: _sidebarItems,
+            onTap: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 20, right: 20, bottom: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xff1E1E1E),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Icon(
-                          Icons.tv,
-                          size: 64,
-                          color: Colors.white,
-                        ),
-                        SizedBox(height: 16),
+                        Icon(activeItem.iconSelected, size: 32, color: Colors.white),
+                        const SizedBox(width: 16),
                         Text(
-                          'Ambilight Effect',
-                          style: TextStyle(
-                            fontSize: 20,
+                          activeItem.text,
+                          style: const TextStyle(
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    const Divider(color: Color(0xff323232)),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Welcome to ${activeItem.text}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'This screen demonstrates flutter_gn_side_navigation_rail in action.\n\n'
+                      '• Try clicking different items to watch the floating selection indicator animate.\n'
+                      '• Resize your window below 700px width or click the toggle button at the bottom of the sidebar to collapse/expand.',
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 1.6,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 60),
-
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'The glow matches the colors of the child widget dynamically!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

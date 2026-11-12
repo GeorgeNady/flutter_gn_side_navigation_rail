@@ -1,7 +1,7 @@
-name: flutter_gn_fancyleds_card
-description: "A customizable Flutter card widget with an animated LED border and vibrant glow effects."
-version: 2.1.0
-homepage: https://github.com/GeorgeNady/flutter_gn_fancyleds_card
+name: flutter_gn_side_navigation_rail
+description: "A customizable, animated side navigation rail / sidebar for Flutter applications with smooth responsiveness and floating indicators."
+version: 1.0.0
+homepage: https://github.com/GeorgeNady/flutter_gn_side_navigation_rail
 
 environment:
   sdk: ^3.10.9
@@ -10,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  image: ^4.2.0
 
 dev_dependencies:
   flutter_test:

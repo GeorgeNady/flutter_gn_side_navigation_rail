@@ -1,16 +1,22 @@
-# example
+# flutter_gn_side_navigation_rail Example
 
-A new Flutter project.
+A demonstration application showcasing how to implement and customize `SideBarAnimated` from the `flutter_gn_side_navigation_rail` package.
 
-## Getting Started
+## Features Demonstrated
 
-This project is a starting point for a Flutter application.
+- Responsive layout adapting to window/screen size with smooth animations.
+- Expand / collapse toggle button.
+- Floating selection indicator with customizable animations.
+- Dynamic page switching upon item selection.
+- Custom dark theme styling.
 
-A few resources to get you started if this is your first Flutter project:
+## Running the Example
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Make sure Flutter is installed and run:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+flutter run
+```
+
+Supports macOS, Windows, Linux, Web, iOS, and Android.
