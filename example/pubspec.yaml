@@ -32,6 +32,8 @@ dependencies:
     sdk: flutter
   flutter_gn_side_navigation_rail:
     path: ../
+  side_bar_code_exporter:
+    path: packages/side_bar_code_exporter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

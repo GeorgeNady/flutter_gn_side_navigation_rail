@@ -5,7 +5,7 @@ import '../models/side_bar_item.dart';
 class SideBarItemTile extends StatelessWidget {
   final SideBarItem item;
   final bool isSelected;
-  final bool isExpanded;
+  final double labelOpacity;
   final double height;
   final BorderRadius borderRadius;
   final Color iconColor;
@@ -19,7 +19,7 @@ class SideBarItemTile extends StatelessWidget {
     super.key,
     required this.item,
     required this.isSelected,
-    required this.isExpanded,
+    required this.labelOpacity,
     required this.height,
     required this.borderRadius,
     required this.iconColor,
@@ -36,32 +36,65 @@ class SideBarItemTile extends StatelessWidget {
         ? item.iconSelected
         : (item.iconUnselected ?? item.iconSelected);
 
+    const double iconSize = 24.0;
+    const double iconTextGap = 12.0;
+
     Widget content = SizedBox(
       height: height,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              effectiveIcon,
-              color: iconColor,
-              size: 24,
-            ),
-            if (isExpanded) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item.text,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: textStyle,
-                ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double maxWidth =
+              constraints.maxWidth.isFinite ? constraints.maxWidth : 0.0;
+          final double horizontalPadding =
+              ((maxWidth - iconSize) / 2).clamp(0.0, 12.0);
+          final double innerWidth =
+              (maxWidth - horizontalPadding * 2).clamp(0.0, double.infinity);
+          final double availableTextWidth = innerWidth - iconSize - iconTextGap;
+          final double clampedOpacity = labelOpacity.clamp(0.0, 1.0);
+          final bool shouldShowLabel =
+              clampedOpacity > 0 && availableTextWidth > 0;
+
+          Widget iconWidget = Icon(
+            effectiveIcon,
+            color: iconColor,
+            size: iconSize,
+          );
+          if (innerWidth < iconSize) {
+            iconWidget = SizedBox(
+              width: innerWidth,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: iconWidget,
               ),
-            ],
-          ],
-        ),
+            );
+          }
+
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                iconWidget,
+                if (shouldShowLabel) ...[
+                  const SizedBox(width: iconTextGap),
+                  Expanded(
+                    child: Opacity(
+                      opacity: clampedOpacity,
+                      child: Text(
+                        item.text,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: textStyle,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
       ),
     );
 

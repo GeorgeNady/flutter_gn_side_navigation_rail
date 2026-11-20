@@ -49,6 +49,17 @@ class SideBarAnimated extends StatefulWidget {
   /// Compact width of the sidebar when collapsed into rail mode.
   final double sideBarSmallWidth;
 
+  /// Whether the sidebar should shrink its height to fit its content instead
+  /// of stretching to full screen height.
+  ///
+  /// Ignored when [height] is explicitly specified. Defaults to `false`.
+  final bool shrinkWrap;
+
+  /// Optional explicit fixed height for the sidebar container.
+  ///
+  /// Takes precedence over [shrinkWrap] when provided.
+  final double? height;
+
   /// Height of each navigation item tile.
   final double itemHeight;
 
@@ -171,6 +182,8 @@ class SideBarAnimated extends StatefulWidget {
     this.footerWidget,
     this.sideBarWidth = 260,
     this.sideBarSmallWidth = 84,
+    this.shrinkWrap = false,
+    this.height,
     this.itemHeight = 48,
     this.itemSpacing = 8,
     this.borderRadius = 20,
@@ -212,7 +225,8 @@ class SideBarAnimated extends StatefulWidget {
         itemTransitionDuration = itemTransitionDuration ?? floatingAnimationDuration,
         itemTransitionCurve = itemTransitionCurve ?? curve,
         itemBorderRadius = itemBorderRadius ?? BorderRadius.circular(12),
-        assert(sidebarItems.isNotEmpty, "sidebarItems cannot be empty");
+        assert(sidebarItems.isNotEmpty, "sidebarItems cannot be empty"),
+        assert(height == null || height > 0, 'height must be greater than zero');
 
   /// Duration of the floating indicator glide animation (for backward compatibility).
   Duration get floatingAnimationDuration => itemTransitionDuration;
@@ -521,20 +535,14 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
     final safeIndex = (_currentIndex >= 0 && _currentIndex < widget.sidebarItems.length)
         ? _currentIndex
         : 0;
-    final activeItem = widget.sidebarItems[safeIndex];
-
-    final defaultPadding = EdgeInsets.only(
-      top: 40,
-      left: isExpanded ? 20 : 18,
-      right: isExpanded ? 20 : 18,
-      bottom: 24,
-    );
 
     final effectiveTransitionType = _activeTransitionType ?? widget.transitionType;
+    final bool isShrunk = widget.height == null && widget.shrinkWrap;
+    final double? resolvedHeight =
+        widget.height ?? (widget.shrinkWrap ? null : screenHeight);
 
     return AnimatedContainer(
       curve: widget.curve,
-      height: screenHeight,
       margin: widget.margin,
       width: isExpanded ? widget.sideBarWidth : widget.sideBarSmallWidth,
       decoration: BoxDecoration(
@@ -542,20 +550,37 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
         borderRadius: BorderRadius.circular(widget.borderRadius),
       ),
       duration: widget.sideBarAnimationDuration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.headerWidget != null)
-            Padding(
-              padding: EdgeInsets.only(
-                left: isExpanded ? 20 : 18,
-                right: isExpanded ? 20 : 18,
-                top: 24,
-              ),
-              child: widget.headerWidget!,
-            ),
-          Expanded(
-            child: SingleChildScrollView(
+      child: SizedBox(
+        height: resolvedHeight,
+        child: LayoutBuilder(
+          builder: (context, innerConstraints) {
+            final double widthDelta =
+                widget.sideBarWidth - widget.sideBarSmallWidth;
+            final double expandProgress = widthDelta > 0
+                ? ((innerConstraints.maxWidth - widget.sideBarSmallWidth) /
+                        widthDelta)
+                    .clamp(0.0, 1.0)
+                : (isExpanded ? 1.0 : 0.0);
+
+            const double labelRevealThreshold = 0.5;
+            final double labelOpacity = expandProgress <= labelRevealThreshold
+                ? 0.0
+                : ((expandProgress - labelRevealThreshold) /
+                        (1.0 - labelRevealThreshold))
+                    .clamp(0.0, 1.0);
+
+            final double horizontalPadding =
+                lerpDouble(18, 20, expandProgress) ?? 18;
+
+            final defaultPadding = EdgeInsets.only(
+              top: 40,
+              left: horizontalPadding,
+              right: horizontalPadding,
+              bottom: 24,
+            );
+
+            final bool hasBoundedHeight = innerConstraints.hasBoundedHeight;
+            final Widget scrollContent = SingleChildScrollView(
               physics: widget.scrollPhysics,
               padding: widget.contentPadding ?? defaultPadding,
               child: SizedBox(
@@ -564,18 +589,15 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
                   children: [
                     AnimatedBuilder(
                       animation: _animation,
-                      builder: (context, _) {
+                      child: FloatingIndicator(
+                        color: widget.animatedContainerColor,
+                        borderRadius: widget.itemBorderRadius,
+                        height: widget.itemHeight,
+                      ),
+                      builder: (context, indicatorChild) {
                         return _buildIndicatorWidget(
                           type: effectiveTransitionType,
-                          indicatorChild: FloatingIndicator(
-                            color: widget.animatedContainerColor,
-                            borderRadius: widget.itemBorderRadius,
-                            height: widget.itemHeight,
-                            isExpanded: isExpanded,
-                            item: activeItem,
-                            iconColor: widget.selectedIconColor,
-                            textStyle: _resolveTextStyle(activeItem, true),
-                          ),
+                          indicatorChild: indicatorChild!,
                         );
                       },
                     ),
@@ -589,7 +611,7 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
                         return SideBarItemTile(
                           item: item,
                           isSelected: isSelected,
-                          isExpanded: isExpanded,
+                          labelOpacity: labelOpacity,
                           height: widget.itemHeight,
                           borderRadius: widget.itemBorderRadius,
                           iconColor: _resolveIconColor(item, isSelected),
@@ -615,33 +637,60 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
                   ],
                 ),
               ),
-            ),
-          ),
-          if (widget.footerWidget != null)
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isExpanded ? 20 : 18,
-                vertical: 8,
-              ),
-              child: widget.footerWidget!,
-            ),
-          if (widget.showToggleButton && !isScreenNarrow)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: CollapseToggleButton(
-                isMinimized: isEffectiveMinimized,
-                onToggle: _toggleMinimize,
-                color: widget.toggleButtonColor ?? widget.selectedIconColor,
-                hoverColor: widget.hoverColor,
-                splashColor: widget.splashColor,
-                highlightColor: widget.highlightColor,
-                expandedIcon: widget.expandedToggleIcon,
-                collapsedIcon: widget.collapsedToggleIcon,
-                expandedWidget: widget.expandedToggleWidget,
-                collapsedWidget: widget.collapsedToggleWidget,
-              ),
-            ),
-        ],
+            );
+
+            final Widget listSection = !hasBoundedHeight
+                ? scrollContent
+                : isShrunk
+                    ? Flexible(fit: FlexFit.loose, child: scrollContent)
+                    : Expanded(child: scrollContent);
+
+            return Column(
+              mainAxisSize:
+                  (isShrunk || !hasBoundedHeight) ? MainAxisSize.min : MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.headerWidget != null)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: horizontalPadding,
+                      right: horizontalPadding,
+                      top: 24,
+                    ),
+                    child: widget.headerWidget!,
+                  ),
+                listSection,
+                if (widget.footerWidget != null)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: 8,
+                    ),
+                    child: widget.footerWidget!,
+                  ),
+                if (widget.showToggleButton && !isScreenNarrow)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: 24,
+                    ),
+                    child: CollapseToggleButton(
+                      isMinimized: isEffectiveMinimized,
+                      onToggle: _toggleMinimize,
+                      color: widget.toggleButtonColor ?? widget.selectedIconColor,
+                      hoverColor: widget.hoverColor,
+                      splashColor: widget.splashColor,
+                      highlightColor: widget.highlightColor,
+                      expandedIcon: widget.expandedToggleIcon,
+                      collapsedIcon: widget.collapsedToggleIcon,
+                      expandedWidget: widget.expandedToggleWidget,
+                      collapsedWidget: widget.collapsedToggleWidget,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -173,4 +173,330 @@ void main() {
 
     expect(controller.selectedIndex, 1);
   });
+
+  testWidgets('Expanding sidebar does not overflow mid-animation and delays title until wide enough', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = SideBarController(initialIndex: 0, initialMinimized: true);
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(
+                controller: controller,
+                sidebarItems: items,
+                sideBarAnimationDuration: const Duration(milliseconds: 500),
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsNothing);
+
+    controller.expand();
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+
+    await tester.pump(const Duration(milliseconds: 25));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Dashboard'), findsNothing);
+
+    for (var elapsed = 50; elapsed <= 600; elapsed += 25) {
+      await tester.pump(const Duration(milliseconds: 25));
+      expect(tester.takeException(), isNull);
+    }
+
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Dashboard'), findsOneWidget);
+  });
+
+  testWidgets('Collapsing sidebar renders only a single icon for the selected item', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = SideBarController(initialIndex: 0, initialMinimized: false);
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(
+                controller: controller,
+                sidebarItems: items,
+                sideBarAnimationDuration: const Duration(milliseconds: 500),
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.dashboard), findsOneWidget);
+
+    controller.collapse();
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.dashboard), findsOneWidget);
+
+    for (var elapsed = 25; elapsed <= 600; elapsed += 25) {
+      await tester.pump(const Duration(milliseconds: 25));
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.dashboard), findsOneWidget);
+    }
+
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.dashboard), findsOneWidget);
+  });
+
+  testWidgets('Height control: default fills screen height', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(sidebarItems: items),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final size = tester.getSize(find.byType(SideBarAnimated));
+    expect(size.height, 900.0);
+  });
+
+  testWidgets('Height control: shrinkWrap true shrinks to content in Scaffold/Row', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(
+                sidebarItems: items,
+                shrinkWrap: true,
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final size = tester.getSize(find.byType(SideBarAnimated));
+    expect(size.height, lessThan(900.0));
+    expect(size.height, greaterThan(0.0));
+  });
+
+  testWidgets('Height control: shrinkWrap true with many items caps at viewport height and scrolls', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final items = List.generate(
+      30,
+      (i) => SideBarItem(iconSelected: Icons.circle, text: 'Item $i'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(
+                sidebarItems: items,
+                shrinkWrap: true,
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final size = tester.getSize(find.byType(SideBarAnimated));
+    expect(size.height, lessThanOrEqualTo(900.0));
+
+    final scrollable = find.byType(SingleChildScrollView);
+    expect(scrollable, findsOneWidget);
+    await tester.drag(scrollable, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Height control: shrinkWrap true inside unbounded SingleChildScrollView + Column', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SideBarAnimated(
+                  sidebarItems: items,
+                  shrinkWrap: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final size = tester.getSize(find.byType(SideBarAnimated));
+    expect(size.height, lessThan(900.0));
+    expect(size.height, greaterThan(0.0));
+  });
+
+  testWidgets('Height control: explicit height overrides shrinkWrap', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(
+                sidebarItems: items,
+                margin: EdgeInsets.zero,
+                height: 420,
+                shrinkWrap: true,
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final size = tester.getSize(find.byType(SideBarAnimated));
+    expect(size.height, 420.0);
+  });
+
+  testWidgets('Height control: runtime toggling of shrinkWrap and height completes with zero exceptions', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    Widget buildApp({required bool shrinkWrap, double? height}) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              SideBarAnimated(
+                sidebarItems: items,
+                margin: EdgeInsets.zero,
+                shrinkWrap: shrinkWrap,
+                height: height,
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildApp(shrinkWrap: false, height: null));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(SideBarAnimated)).height, 900.0);
+
+    await tester.pumpWidget(buildApp(shrinkWrap: true, height: null));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(SideBarAnimated)).height, lessThan(900.0));
+
+    await tester.pumpWidget(buildApp(shrinkWrap: false, height: 420));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(SideBarAnimated)).height, 420.0);
+
+    await tester.pumpWidget(buildApp(shrinkWrap: false, height: null));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(SideBarAnimated)).height, 900.0);
+  });
 }
