@@ -60,6 +60,10 @@ class SideBarAnimated extends StatefulWidget {
   /// Takes precedence over [shrinkWrap] when provided.
   final double? height;
 
+  /// Alignment used when [shrinkWrap] is `true` or an explicit [height] is
+  /// provided inside a parent with larger constraints.
+  final AlignmentGeometry alignment;
+
   /// Height of each navigation item tile.
   final double itemHeight;
 
@@ -184,6 +188,7 @@ class SideBarAnimated extends StatefulWidget {
     this.sideBarSmallWidth = 84,
     this.shrinkWrap = false,
     this.height,
+    this.alignment = Alignment.center,
     this.itemHeight = 48,
     this.itemSpacing = 8,
     this.borderRadius = 20,
@@ -537,161 +542,190 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
         : 0;
 
     final effectiveTransitionType = _activeTransitionType ?? widget.transitionType;
-    final bool isShrunk = widget.height == null && widget.shrinkWrap;
-    final double? resolvedHeight =
-        widget.height ?? (widget.shrinkWrap ? null : screenHeight);
 
-    return AnimatedContainer(
-      curve: widget.curve,
-      margin: widget.margin,
-      width: isExpanded ? widget.sideBarWidth : widget.sideBarSmallWidth,
-      decoration: BoxDecoration(
-        color: widget.sideBarColor,
-        borderRadius: BorderRadius.circular(widget.borderRadius),
-      ),
-      duration: widget.sideBarAnimationDuration,
-      child: SizedBox(
-        height: resolvedHeight,
-        child: LayoutBuilder(
-          builder: (context, innerConstraints) {
-            final double widthDelta =
-                widget.sideBarWidth - widget.sideBarSmallWidth;
-            final double expandProgress = widthDelta > 0
-                ? ((innerConstraints.maxWidth - widget.sideBarSmallWidth) /
-                        widthDelta)
-                    .clamp(0.0, 1.0)
-                : (isExpanded ? 1.0 : 0.0);
+    return LayoutBuilder(
+      builder: (context, outerConstraints) {
+        final bool isWrapContent = widget.height == null && widget.shrinkWrap;
+        final double? resolvedHeight = widget.height ??
+            (widget.shrinkWrap
+                ? null
+                : (outerConstraints.hasBoundedHeight
+                    ? outerConstraints.maxHeight
+                    : screenHeight));
 
-            const double labelRevealThreshold = 0.5;
-            final double labelOpacity = expandProgress <= labelRevealThreshold
-                ? 0.0
-                : ((expandProgress - labelRevealThreshold) /
-                        (1.0 - labelRevealThreshold))
-                    .clamp(0.0, 1.0);
+        final Widget container = AnimatedContainer(
+          curve: widget.curve,
+          margin: widget.margin,
+          width: isExpanded ? widget.sideBarWidth : widget.sideBarSmallWidth,
+          decoration: BoxDecoration(
+            color: widget.sideBarColor,
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+          ),
+          duration: widget.sideBarAnimationDuration,
+          child: SizedBox(
+            height: resolvedHeight,
+            child: LayoutBuilder(
+              builder: (context, innerConstraints) {
+                final double widthDelta =
+                    widget.sideBarWidth - widget.sideBarSmallWidth;
+                final double expandProgress = widthDelta > 0
+                    ? ((innerConstraints.maxWidth - widget.sideBarSmallWidth) /
+                            widthDelta)
+                        .clamp(0.0, 1.0)
+                    : (isExpanded ? 1.0 : 0.0);
 
-            final double horizontalPadding =
-                lerpDouble(18, 20, expandProgress) ?? 18;
+                const double labelRevealThreshold = 0.5;
+                final double labelOpacity = expandProgress <= labelRevealThreshold
+                    ? 0.0
+                    : ((expandProgress - labelRevealThreshold) /
+                            (1.0 - labelRevealThreshold))
+                        .clamp(0.0, 1.0);
 
-            final defaultPadding = EdgeInsets.only(
-              top: 40,
-              left: horizontalPadding,
-              right: horizontalPadding,
-              bottom: 24,
-            );
+                final double horizontalPadding =
+                    lerpDouble(18, 20, expandProgress) ?? 18;
 
-            final bool hasBoundedHeight = innerConstraints.hasBoundedHeight;
-            final Widget scrollContent = SingleChildScrollView(
-              physics: widget.scrollPhysics,
-              padding: widget.contentPadding ?? defaultPadding,
-              child: SizedBox(
-                height: totalHeight,
-                child: Stack(
-                  children: [
-                    AnimatedBuilder(
-                      animation: _animation,
-                      child: FloatingIndicator(
-                        color: widget.animatedContainerColor,
-                        borderRadius: widget.itemBorderRadius,
-                        height: widget.itemHeight,
-                      ),
-                      builder: (context, indicatorChild) {
-                        return _buildIndicatorWidget(
-                          type: effectiveTransitionType,
-                          indicatorChild: indicatorChild!,
-                        );
-                      },
-                    ),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: widget.sidebarItems.length,
-                      itemBuilder: (context, index) {
-                        final item = widget.sidebarItems[index];
-                        final isSelected = index == safeIndex;
-                        return SideBarItemTile(
-                          item: item,
-                          isSelected: isSelected,
-                          labelOpacity: labelOpacity,
-                          height: widget.itemHeight,
-                          borderRadius: widget.itemBorderRadius,
-                          iconColor: _resolveIconColor(item, isSelected),
-                          textStyle: _resolveTextStyle(item, isSelected),
-                          hoverColor: widget.hoverColor,
-                          splashColor: widget.splashColor,
-                          highlightColor: widget.highlightColor,
-                          onTap: () => _onItemTapped(index),
-                        );
-                      },
-                      separatorBuilder: (context, index) {
-                        if (index == widget.sidebarItems.length - 2 &&
-                            widget.settingsDivider) {
-                          return Divider(
-                            height: widget.dividerHeight,
-                            thickness: widget.dividerThickness,
-                            color: widget.dividerColor,
-                          );
-                        }
-                        return SizedBox(height: widget.itemSpacing);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
+                final defaultPadding = EdgeInsets.only(
+                  top: 40,
+                  left: horizontalPadding,
+                  right: horizontalPadding,
+                  bottom: 24,
+                );
 
-            final Widget listSection = !hasBoundedHeight
-                ? scrollContent
-                : isShrunk
-                    ? Flexible(fit: FlexFit.loose, child: scrollContent)
-                    : Expanded(child: scrollContent);
-
-            return Column(
-              mainAxisSize:
-                  (isShrunk || !hasBoundedHeight) ? MainAxisSize.min : MainAxisSize.max,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.headerWidget != null)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: horizontalPadding,
-                      right: horizontalPadding,
-                      top: 24,
-                    ),
-                    child: widget.headerWidget!,
-                  ),
-                listSection,
-                if (widget.footerWidget != null)
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                      vertical: 8,
-                    ),
-                    child: widget.footerWidget!,
-                  ),
-                if (widget.showToggleButton && !isScreenNarrow)
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                      vertical: 24,
-                    ),
-                    child: CollapseToggleButton(
-                      isMinimized: isEffectiveMinimized,
-                      onToggle: _toggleMinimize,
-                      color: widget.toggleButtonColor ?? widget.selectedIconColor,
+                final List<Widget> itemChildren = <Widget>[];
+                for (int index = 0; index < widget.sidebarItems.length; index++) {
+                  if (index > 0) {
+                    if (index - 1 == widget.sidebarItems.length - 2 &&
+                        widget.settingsDivider) {
+                      itemChildren.add(
+                        Divider(
+                          height: widget.dividerHeight,
+                          thickness: widget.dividerThickness,
+                          color: widget.dividerColor,
+                        ),
+                      );
+                    } else {
+                      itemChildren.add(SizedBox(height: widget.itemSpacing));
+                    }
+                  }
+                  final item = widget.sidebarItems[index];
+                  final isSelected = index == safeIndex;
+                  itemChildren.add(
+                    SideBarItemTile(
+                      item: item,
+                      isSelected: isSelected,
+                      labelOpacity: labelOpacity,
+                      height: widget.itemHeight,
+                      borderRadius: widget.itemBorderRadius,
+                      iconColor: _resolveIconColor(item, isSelected),
+                      textStyle: _resolveTextStyle(item, isSelected),
                       hoverColor: widget.hoverColor,
                       splashColor: widget.splashColor,
                       highlightColor: widget.highlightColor,
-                      expandedIcon: widget.expandedToggleIcon,
-                      collapsedIcon: widget.collapsedToggleIcon,
-                      expandedWidget: widget.expandedToggleWidget,
-                      collapsedWidget: widget.collapsedToggleWidget,
+                      onTap: () => _onItemTapped(index),
+                    ),
+                  );
+                }
+
+                final bool hasBoundedHeight = innerConstraints.hasBoundedHeight;
+                final Widget scrollContent = SingleChildScrollView(
+                  physics: widget.scrollPhysics,
+                  padding: widget.contentPadding ?? defaultPadding,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: totalHeight,
+                    child: Stack(
+                      children: [
+                        AnimatedBuilder(
+                          animation: _animation,
+                          child: FloatingIndicator(
+                            color: widget.animatedContainerColor,
+                            borderRadius: widget.itemBorderRadius,
+                            height: widget.itemHeight,
+                          ),
+                          builder: (context, indicatorChild) {
+                            return _buildIndicatorWidget(
+                              type: effectiveTransitionType,
+                              indicatorChild: indicatorChild!,
+                            );
+                          },
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: itemChildren,
+                        ),
+                      ],
                     ),
                   ),
-              ],
-            );
-          },
-        ),
-      ),
+                );
+
+                final Widget listSection = !hasBoundedHeight
+                    ? scrollContent
+                    : isWrapContent
+                        ? Flexible(fit: FlexFit.loose, child: scrollContent)
+                        : Expanded(child: scrollContent);
+
+                return Column(
+                  mainAxisSize: (isWrapContent || !hasBoundedHeight)
+                      ? MainAxisSize.min
+                      : MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.headerWidget != null)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: horizontalPadding,
+                          right: horizontalPadding,
+                          top: 24,
+                        ),
+                        child: widget.headerWidget!,
+                      ),
+                    listSection,
+                    if (widget.footerWidget != null)
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: 8,
+                        ),
+                        child: widget.footerWidget!,
+                      ),
+                    if (widget.showToggleButton && !isScreenNarrow)
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: 24,
+                        ),
+                        child: CollapseToggleButton(
+                          isMinimized: isEffectiveMinimized,
+                          onToggle: _toggleMinimize,
+                          color:
+                              widget.toggleButtonColor ?? widget.selectedIconColor,
+                          hoverColor: widget.hoverColor,
+                          splashColor: widget.splashColor,
+                          highlightColor: widget.highlightColor,
+                          expandedIcon: widget.expandedToggleIcon,
+                          collapsedIcon: widget.collapsedToggleIcon,
+                          expandedWidget: widget.expandedToggleWidget,
+                          collapsedWidget: widget.collapsedToggleWidget,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+
+        if (isWrapContent || widget.height != null) {
+          return Align(
+            alignment: widget.alignment,
+            widthFactor: 1.0,
+            heightFactor: 1.0,
+            child: container,
+          );
+        }
+        return container;
+      },
     );
   }
 }

@@ -499,4 +499,141 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(SideBarAnimated)).height, 900.0);
   });
+
+  testWidgets('Height control: tight parent with shrinkWrap true wraps content without stretching', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    // Case 1: Row with CrossAxisAlignment.stretch
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SideBarAnimated(
+                sidebarItems: items,
+                shrinkWrap: true,
+                showToggleButton: false,
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final stretchedContainerHeight = tester.getSize(find.byType(AnimatedContainer)).height;
+    // margin (20*2) + defaultPadding (40+24) + 2 items (48*2) + divider (12) = 212.0
+    expect(stretchedContainerHeight, 212.0);
+    expect(find.byType(ListView), findsNothing);
+
+    // Case 2: Tight SizedBox(height: 900)
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 900,
+            child: SideBarAnimated(
+              sidebarItems: items,
+              shrinkWrap: true,
+              showToggleButton: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(AnimatedContainer)).height, 212.0);
+  });
+
+  testWidgets('Height control: tight parent with explicit height honors fixed height', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 900,
+            child: SideBarAnimated(
+              sidebarItems: items,
+              margin: EdgeInsets.zero,
+              height: 420,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(AnimatedContainer)).height, 420.0);
+  });
+
+  testWidgets('Height control: match parent fills bounded parent heights (600px and 1200px)', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const items = [
+      SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+      SideBarItem(iconSelected: Icons.settings, text: 'Settings'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 600,
+            child: SideBarAnimated(
+              sidebarItems: items,
+              shrinkWrap: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(AnimatedContainer)).height, 600.0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SingleChildScrollView(
+          child: SizedBox(
+            height: 1200,
+            child: SideBarAnimated(
+              sidebarItems: items,
+              shrinkWrap: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(AnimatedContainer)).height, 1200.0);
+  });
 }

@@ -58,6 +58,9 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
   double _widthSwitch = 700;
   double _sideBarWidth = 260;
   double _sideBarSmallWidth = 84;
+  bool _shrinkWrap = false;
+  bool _useCustomHeight = false;
+  double _customHeight = 500;
   double _itemHeight = 48;
   double _itemSpacing = 8;
   double _borderRadius = 20;
@@ -240,6 +243,9 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
       widthSwitch: _widthSwitch,
       sideBarWidth: _sideBarWidth,
       sideBarSmallWidth: _sideBarSmallWidth,
+      shrinkWrap: _shrinkWrap,
+      useCustomHeight: _useCustomHeight,
+      customHeight: _customHeight,
       itemHeight: _itemHeight,
       itemSpacing: _itemSpacing,
       borderRadius: _borderRadius,
@@ -356,6 +362,9 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
       _widthSwitch = 700;
       _sideBarWidth = 260;
       _sideBarSmallWidth = 84;
+      _shrinkWrap = false;
+      _useCustomHeight = false;
+      _customHeight = 500;
       _itemHeight = 48;
       _itemSpacing = 8;
       _borderRadius = 20;
@@ -498,6 +507,8 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
                 widthSwitch: _widthSwitch,
                 sideBarWidth: _sideBarWidth,
                 sideBarSmallWidth: _sideBarSmallWidth,
+                shrinkWrap: _shrinkWrap,
+                height: _useCustomHeight ? _customHeight : null,
                 itemHeight: _itemHeight,
                 itemSpacing: _itemSpacing,
                 borderRadius: _borderRadius,
@@ -561,67 +572,100 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
                         Curves.easeOutCubic,
                 itemTransitionBuilder: _buildCustomTransition,
                 headerWidget: _showHeaderWidget
-                    ? Row(
-                        children: [
-                          Image.asset(
-                            'assets/logo.png',
-                            width: 44,
-                            height: 44,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              Icons.rocket_launch,
-                              size: 36,
-                              color: _selectedIconColor,
-                            ),
-                          ),
-                          if (!isCurrentlyMinimized) ...[
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Text(
-                                'MyApp',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      )
-                    : null,
-                footerWidget: _showFooterWidget
-                    ? Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircleAvatar(
-                              radius: 14,
-                              backgroundColor: Colors.deepPurple,
-                              child: Icon(Icons.person,
-                                  size: 16, color: Colors.white),
-                            ),
-                            if (!isCurrentlyMinimized) ...[
-                              const SizedBox(width: 10),
-                              const Expanded(
-                                child: Text(
-                                  'George N.',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
+                    ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          final showTitle =
+                              !isCurrentlyMinimized && constraints.maxWidth >= 110;
+                          return Row(
+                            children: [
+                              SizedBox(
+                                width: constraints.maxWidth.clamp(0.0, 44.0),
+                                height: 44,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Image.asset(
+                                    'assets/logo.png',
+                                    width: 44,
+                                    height: 44,
+                                    errorBuilder: (context, error, stackTrace) => Icon(
+                                      Icons.rocket_launch,
+                                      size: 36,
+                                      color: _selectedIconColor,
+                                    ),
                                   ),
                                 ),
                               ),
+                              if (showTitle) ...[
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'MyApp',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
+                          );
+                        },
+                      )
+                    : null,
+                footerWidget: _showFooterWidget
+                    ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          final showName =
+                              !isCurrentlyMinimized && constraints.maxWidth >= 110;
+                          final isNarrow = constraints.maxWidth < 48;
+                          return Container(
+                            padding: EdgeInsets.all(isNarrow ? 4 : 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isNarrow)
+                                  const Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: Colors.deepPurple,
+                                        child: Icon(Icons.person,
+                                            size: 16, color: Colors.white),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  const CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: Colors.deepPurple,
+                                    child: Icon(Icons.person,
+                                        size: 16, color: Colors.white),
+                                  ),
+                                if (showName) ...[
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'George N.',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
                       )
                     : null,
                 showToggleButton: _showToggleButton,
@@ -631,23 +675,26 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
                 collapsedToggleIcon:
                     _toggleIconOptions[_collapsedToggleIconKey] ?? Icons.menu,
                 expandedToggleWidget: _useCustomToggleWidgets
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.first_page,
-                                size: 18, color: Colors.white),
-                            SizedBox(width: 4),
-                            Text('Hide',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.white)),
-                          ],
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.first_page,
+                                  size: 18, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text('Hide',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.white)),
+                            ],
+                          ),
                         ),
                       )
                     : null,
@@ -1032,6 +1079,29 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
               label: Text(
                   isCurrentlyMinimized ? 'Expand Rail' : 'Collapse Rail'),
             ),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  if (_shrinkWrap && !_useCustomHeight) {
+                    _shrinkWrap = false;
+                    _useCustomHeight = false;
+                  } else {
+                    _shrinkWrap = true;
+                    _useCustomHeight = false;
+                  }
+                });
+              },
+              icon: Icon(
+                (_shrinkWrap && !_useCustomHeight)
+                    ? Icons.height
+                    : Icons.compress,
+              ),
+              label: Text(
+                (_shrinkWrap && !_useCustomHeight)
+                    ? 'Match Parent'
+                    : 'Wrap Content',
+              ),
+            ),
             FilledButton.tonalIcon(
               onPressed: _resetAllSettings,
               icon: const Icon(Icons.refresh),
@@ -1111,6 +1181,12 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
               'Last Transition Override',
               _controller.lastTransitionType?.name ?? 'Default',
             ),
+            _buildStatusBadge(
+              'Height Mode',
+              _useCustomHeight
+                  ? 'Fixed (${_customHeight.round()} px)'
+                  : (_shrinkWrap ? 'Wrap Content' : 'Match Parent'),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -1179,6 +1255,63 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        const Text(
+          'Height Mode Quick Control (shrinkWrap / height):',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: const Text('Match Parent'),
+              selected: !_shrinkWrap && !_useCustomHeight,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    _shrinkWrap = false;
+                    _useCustomHeight = false;
+                  });
+                }
+              },
+            ),
+            ChoiceChip(
+              label: const Text('Wrap Content'),
+              selected: _shrinkWrap && !_useCustomHeight,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    _shrinkWrap = true;
+                    _useCustomHeight = false;
+                  });
+                }
+              },
+            ),
+            ChoiceChip(
+              label: const Text('Fixed Height'),
+              selected: _useCustomHeight,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    _useCustomHeight = true;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+        if (_useCustomHeight)
+          _buildSliderRow(
+            label: 'height (Fixed sidebar height)',
+            value: _customHeight,
+            min: 200,
+            max: 900,
+            divisions: 70,
+            valueLabel: '${_customHeight.round()} px',
+            onChanged: (v) => setState(() => _customHeight = v),
+          ),
         const SizedBox(height: 16),
         const Text(
           'Programmatic Navigation with Transition Overrides (controller.selectIndex):',
@@ -1398,6 +1531,40 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
           valueLabel: '${_sideBarSmallWidth.round()} px',
           onChanged: (v) => setState(() => _sideBarSmallWidth = v),
         ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Wrap Content Height (shrinkWrap)'),
+          subtitle: const Text(
+            'Shrinks container height to wrap content instead of matching parent height',
+          ),
+          value: _shrinkWrap,
+          onChanged: (v) => setState(() {
+            _shrinkWrap = v;
+            if (v) _useCustomHeight = false;
+          }),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Fixed Custom Height (height)'),
+          subtitle: const Text(
+            'Sets an explicit fixed height (takes precedence over shrinkWrap)',
+          ),
+          value: _useCustomHeight,
+          onChanged: (v) => setState(() {
+            _useCustomHeight = v;
+            if (v) _shrinkWrap = false;
+          }),
+        ),
+        if (_useCustomHeight)
+          _buildSliderRow(
+            label: 'height (Fixed sidebar height)',
+            value: _customHeight,
+            min: 200,
+            max: 900,
+            divisions: 70,
+            valueLabel: '${_customHeight.round()} px',
+            onChanged: (v) => setState(() => _customHeight = v),
+          ),
         _buildSliderRow(
           label: 'itemHeight (Navigation tile height)',
           value: _itemHeight,
@@ -2020,14 +2187,15 @@ class _ExampleHomeScreenState extends State<ExampleHomeScreen> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
       children: [
         Text(
           '$label: ',
           style: const TextStyle(fontSize: 13, color: Colors.white70),
         ),
-        const SizedBox(width: 8),
         DropdownButton<T>(
           value: value,
           items: items,

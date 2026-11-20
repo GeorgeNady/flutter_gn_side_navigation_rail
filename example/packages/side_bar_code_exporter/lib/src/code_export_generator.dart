@@ -15,6 +15,9 @@ class SideBarExportConfig {
   final double widthSwitch;
   final double sideBarWidth;
   final double sideBarSmallWidth;
+  final bool shrinkWrap;
+  final bool useCustomHeight;
+  final double customHeight;
   final double itemHeight;
   final double itemSpacing;
   final double borderRadius;
@@ -74,6 +77,9 @@ class SideBarExportConfig {
     required this.widthSwitch,
     required this.sideBarWidth,
     required this.sideBarSmallWidth,
+    this.shrinkWrap = false,
+    this.useCustomHeight = false,
+    this.customHeight = 500,
     required this.itemHeight,
     required this.itemSpacing,
     required this.borderRadius,
@@ -247,6 +253,10 @@ class CodeExportGenerator {
     b.writeln('${indent}sideBarWidth: ${cfg.sideBarWidth.toStringAsFixed(1)},');
     b.writeln(
         '${indent}sideBarSmallWidth: ${cfg.sideBarSmallWidth.toStringAsFixed(1)},');
+    b.writeln('${indent}shrinkWrap: ${cfg.shrinkWrap},');
+    if (cfg.useCustomHeight) {
+      b.writeln('${indent}height: ${cfg.customHeight.toStringAsFixed(1)},');
+    }
     b.writeln('${indent}itemHeight: ${cfg.itemHeight.toStringAsFixed(1)},');
     b.writeln('${indent}itemSpacing: ${cfg.itemSpacing.toStringAsFixed(1)},');
     b.writeln('${indent}borderRadius: ${cfg.borderRadius.toStringAsFixed(1)},');
@@ -309,48 +319,52 @@ class CodeExportGenerator {
       b.writeln('${indent}itemTransitionBuilder: _buildCustomTransition,');
     }
     if (cfg.showHeaderWidget) {
-      b.writeln('''${indent}headerWidget: Row(
-$indent  children: [
-$indent    const Icon(Icons.rocket_launch, size: 36, color: Colors.white),
-$indent    if (!$isMinimizedCheckExpr) ...[
-$indent      const SizedBox(width: 12),
-$indent      const Expanded(
-$indent        child: Text(
-$indent          'MyApp',
-$indent          overflow: TextOverflow.ellipsis,
-$indent          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-$indent        ),
-$indent      ),
-$indent    ],
-$indent  ],
-$indent),''');
-    }
-    if (cfg.showFooterWidget) {
-      b.writeln('''${indent}footerWidget: Container(
-$indent  padding: const EdgeInsets.all(10),
-$indent  decoration: BoxDecoration(
-$indent    color: Colors.white.withValues(alpha: 0.06),
-$indent    borderRadius: BorderRadius.circular(12),
-$indent  ),
-$indent  child: Row(
-$indent    mainAxisSize: MainAxisSize.min,
+      b.writeln('''${indent}headerWidget: LayoutBuilder(
+$indent  builder: (context, constraints) => Row(
 $indent    children: [
-$indent      const CircleAvatar(
-$indent        radius: 14,
-$indent        backgroundColor: Colors.deepPurple,
-$indent        child: Icon(Icons.person, size: 16, color: Colors.white),
-$indent      ),
-$indent      if (!$isMinimizedCheckExpr) ...[
-$indent        const SizedBox(width: 10),
+$indent      const Icon(Icons.rocket_launch, size: 36, color: Colors.white),
+$indent      if (!$isMinimizedCheckExpr && constraints.maxWidth >= 110) ...[
+$indent        const SizedBox(width: 12),
 $indent        const Expanded(
 $indent          child: Text(
-$indent            'Developer',
+$indent            'MyApp',
 $indent            overflow: TextOverflow.ellipsis,
-$indent            style: TextStyle(color: Colors.white70, fontSize: 13),
+$indent            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
 $indent          ),
 $indent        ),
 $indent      ],
 $indent    ],
+$indent  ),
+$indent),''');
+    }
+    if (cfg.showFooterWidget) {
+      b.writeln('''${indent}footerWidget: LayoutBuilder(
+$indent  builder: (context, constraints) => Container(
+$indent    padding: EdgeInsets.all(constraints.maxWidth < 48 ? 4 : 10),
+$indent    decoration: BoxDecoration(
+$indent      color: Colors.white.withValues(alpha: 0.06),
+$indent      borderRadius: BorderRadius.circular(12),
+$indent    ),
+$indent    child: Row(
+$indent      mainAxisSize: MainAxisSize.min,
+$indent      children: [
+$indent        const CircleAvatar(
+$indent          radius: 14,
+$indent          backgroundColor: Colors.deepPurple,
+$indent          child: Icon(Icons.person, size: 16, color: Colors.white),
+$indent        ),
+$indent        if (!$isMinimizedCheckExpr && constraints.maxWidth >= 110) ...[
+$indent          const SizedBox(width: 10),
+$indent          const Expanded(
+$indent            child: Text(
+$indent              'Developer',
+$indent              overflow: TextOverflow.ellipsis,
+$indent              style: TextStyle(color: Colors.white70, fontSize: 13),
+$indent            ),
+$indent          ),
+$indent        ],
+$indent      ],
+$indent    ),
 $indent  ),
 $indent),''');
     }
@@ -496,7 +510,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_gn_side_navigation_rail: ^2.1.0
+  flutter_gn_side_navigation_rail: ^2.2.0
 
 dev_dependencies:
   flutter_test:
@@ -792,7 +806,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_gn_side_navigation_rail: ^2.1.0
+  flutter_gn_side_navigation_rail: ^2.2.0
   flutter_bloc: ^9.0.0
   equatable: ^2.0.7
 

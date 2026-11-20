@@ -1,3 +1,14 @@
+## 2.2.0
+
+* **Flexible Container Height Control**:
+  * Added `shrinkWrap` (wrap content vs. match parent, including under tight/stretched parents), optional fixed `height` override, and `alignment` on `SideBarAnimated`.
+* **Expand Overflow Fix & Smooth Label Reveal**:
+  * Width-driven `LayoutBuilder` progress interpolates horizontal padding and delays/fades item labels until enough horizontal width is available, preventing `RenderFlex overflowed` errors during expand animations.
+* **Collapse Duplicate Icon Fix & Cleaner Item Layout**:
+  * Simplified `FloatingIndicator` to render only the highlight container (removing duplicate icon/text) and replaced the internal nested `ListView.separated(shrinkWrap: true)` with a `Column`.
+* **Interactive Playground & Code Exporter Updates**:
+  * Updated the example app and `side_bar_code_exporter` (`StatefulWidget` and `BLoC` exports) with Match Parent / Wrap Content / Fixed Height controls and overflow-safe header/footer slots.
+
 ## 2.1.0
 
 * **Customizable Item Selection Transitions**:
