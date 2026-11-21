@@ -1,3 +1,11 @@
+## 2.2.1
+
+* Example studio revamp: replaced the single-file example playground with a three-zone studio layout (live rail, wide destination preview stage, and a mode-aware Customize/Code right inspector that collapses into an end drawer on compact screens).
+* Clean Architecture and BLoC in `example/`: migrated example state management to `flutter_bloc` and `equatable` with separated `domain/`, `data/`, and `presentation/` layers, repository abstractions, and unit tests.
+* Presets and chrome controls: added four one-click rail presets (`Obsidian`, `Snow`, `Indigo`, `Compact`), a Light/Dark studio theme toggle, and top-level `Show Header` and `Show Footer` controls with an expandable `Advanced` section for all remaining parameters.
+* Accessibility and responsiveness: audited and updated contrast tokens, 48dp touch targets, per-pane keyboard focus traversal, reduced-motion handling, and 2.0x text-scaling layouts.
+* Documentation: updated `README.md` and `example/README.md`, and added Dartdoc comments across the example module.
+
 ## 2.2.0
 
 * **Flexible Container Height Control**:

@@ -510,7 +510,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_gn_side_navigation_rail: ^2.2.0
+  flutter_gn_side_navigation_rail: ^2.2.1
 
 dev_dependencies:
   flutter_test:
@@ -806,7 +806,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_gn_side_navigation_rail: ^2.2.0
+  flutter_gn_side_navigation_rail: ^2.2.1
   flutter_bloc: ^9.0.0
   equatable: ^2.0.7
 

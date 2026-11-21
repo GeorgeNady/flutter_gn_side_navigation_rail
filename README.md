@@ -203,6 +203,9 @@ SideBarAnimated(
 | `disabledTextStyle` | `TextStyle?` | `null` | Typography override for disabled items. |
 | `sideBarWidth` | `double` | `260` | Full width of the expanded sidebar. |
 | `sideBarSmallWidth` | `double` | `84` | Width of the sidebar when collapsed into rail mode. |
+| `shrinkWrap` | `bool` | `false` | Whether the sidebar shrinks its height to wrap content instead of filling parent height. |
+| `height` | `double?` | `null` | Optional explicit fixed height for the sidebar container (takes precedence over `shrinkWrap`). |
+| `alignment` | `AlignmentGeometry` | `Alignment.center` | Alignment used when `shrinkWrap` is `true` or a fixed `height` is set inside a larger parent. |
 | `itemHeight` | `double` | `48` | Height of individual item rows. |
 | `itemSpacing` | `double` | `8` | Spacing between consecutive item rows. |
 | `borderRadius` | `double` | `20` | Corner border radius of the sidebar container. |
@@ -258,9 +261,9 @@ SideBarAnimated(
 | `expand()` | `void` | Expands the sidebar into full width mode. |
 | `collapse()` | `void` | Collapses the sidebar into compact rail mode. |
 
-## Example Project
+## Example project
 
-Check the [example](example) directory for a complete working Flutter application demonstrating interactive transition animation switching, external control with `SideBarController`, custom header widgets, disabled item states, and responsive behavior.
+The [example](example) directory contains an interactive playground and code exporter built with `flutter_bloc` and Clean Architecture (`domain/`, `data/`, and `presentation/`). It includes four rail presets (`Obsidian`, `Snow`, `Indigo`, and `Compact`), Light and Dark studio themes, live header/footer/height/transition controls, and one-click Dart code copy or `.ZIP` export for StatefulWidget and BLoC apps. See [example/README.md](example/README.md) for the folder layout and commands.
 
 ## License
 
