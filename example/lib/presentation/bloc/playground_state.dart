@@ -49,6 +49,12 @@ class PlaygroundState extends Equatable {
   /// Index reported by the last `onTap` callback from `SideBarAnimated`.
   final int? lastTappedIndex;
 
+  /// Label of the most recently triggered non-selectable action item, if any.
+  final String? lastActionLabel;
+
+  /// Monotonically incremented counter whenever an action item is triggered.
+  final int actionTriggerCount;
+
   /// Minimize value reported by the last `onMinimizeChanged` callback.
   final bool? lastMinimizeCallbackValue;
 
@@ -83,6 +89,8 @@ class PlaygroundState extends Equatable {
     required this.lastExportSavedPath,
     required this.lastExportError,
     required this.lastTappedIndex,
+    this.lastActionLabel,
+    this.actionTriggerCount = 0,
     required this.lastMinimizeCallbackValue,
     required this.controllerSelectedIndex,
     required this.controllerIsMinimized,
@@ -96,7 +104,12 @@ class PlaygroundState extends Equatable {
     final raw = config.useController
         ? controllerSelectedIndex
         : (lastTappedIndex ?? config.initialIndex);
-    return raw.clamp(0, config.sidebarItems.length - 1);
+    final clamped = raw.clamp(0, config.sidebarItems.length - 1);
+    if (!config.sidebarItems[clamped].isAction) {
+      return clamped;
+    }
+    final firstNav = config.sidebarItems.indexWhere((item) => !item.isAction);
+    return firstNav >= 0 ? firstNav : 0;
   }
 
   /// Currently selected [SideBarItem].
@@ -136,6 +149,9 @@ class PlaygroundState extends Equatable {
     bool clearLastExportError = false,
     int? lastTappedIndex,
     bool clearLastTappedIndex = false,
+    String? lastActionLabel,
+    bool clearLastActionLabel = false,
+    int? actionTriggerCount,
     bool? lastMinimizeCallbackValue,
     bool clearLastMinimizeCallbackValue = false,
     int? controllerSelectedIndex,
@@ -166,6 +182,10 @@ class PlaygroundState extends Equatable {
       lastTappedIndex: clearLastTappedIndex
           ? null
           : (lastTappedIndex ?? this.lastTappedIndex),
+      lastActionLabel: clearLastActionLabel
+          ? null
+          : (lastActionLabel ?? this.lastActionLabel),
+      actionTriggerCount: actionTriggerCount ?? this.actionTriggerCount,
       lastMinimizeCallbackValue: clearLastMinimizeCallbackValue
           ? null
           : (lastMinimizeCallbackValue ?? this.lastMinimizeCallbackValue),
@@ -196,6 +216,8 @@ class PlaygroundState extends Equatable {
         lastExportSavedPath,
         lastExportError,
         lastTappedIndex,
+        lastActionLabel,
+        actionTriggerCount,
         lastMinimizeCallbackValue,
         controllerSelectedIndex,
         controllerIsMinimized,

@@ -50,6 +50,16 @@ class DefaultRailPresetRepository implements RailPresetRepository {
         text: 'Settings',
         tooltip: 'Application preferences',
       ),
+      SideBarItem.action(
+        icon: Icons.sync,
+        text: 'Sync',
+        tooltip: 'Sync workspace data (action)',
+      ),
+      SideBarItem.action(
+        icon: Icons.logout,
+        text: 'Logout',
+        tooltip: 'Sign out of workspace (action)',
+      ),
     ];
   }
 

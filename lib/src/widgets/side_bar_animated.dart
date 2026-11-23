@@ -16,8 +16,15 @@ import 'side_bar_item_tile.dart';
 /// customizable item-to-item transition animations (slide, fade, scale, fadeSlide, none, custom),
 /// external controller support, and native host project typography inheritance.
 class SideBarAnimated extends StatefulWidget {
-  /// Callback triggered when an active item is tapped with its index.
+  /// Callback triggered when a selectable navigation item is tapped with its index.
   final ValueChanged<int>? onTap;
+
+  /// Callback triggered when a non-selectable [SideBarItemType.action] item is
+  /// tapped with its index.
+  ///
+  /// Invoked in addition to the item's own [SideBarItem.onTap] callback without
+  /// altering the selected index or moving the floating indicator.
+  final ValueChanged<int>? onActionTap;
 
   /// External controller for managing and observing navigation and minimize state.
   final SideBarController? controller;
@@ -97,11 +104,19 @@ class SideBarAnimated extends StatefulWidget {
   /// Color of disabled navigation icons. If null, a dimmed version of [unselectedIconColor] is used.
   final Color? disabledIconColor;
 
+  /// Color of icons for non-selectable [SideBarItemType.action] items.
+  /// Defaults to [unselectedIconColor] when null.
+  final Color? actionIconColor;
+
   /// Text color of unselected navigation item labels.
   final Color unSelectedTextColor;
 
   /// Text color of disabled navigation item labels. If null, a dimmed version of [unSelectedTextColor] is used.
   final Color? disabledTextColor;
+
+  /// Text color of labels for non-selectable [SideBarItemType.action] items.
+  /// Defaults to [unSelectedTextColor] when null.
+  final Color? actionTextColor;
 
   /// Base typography style for navigation items. Inherits native host project font family when null.
   final TextStyle? textStyle;
@@ -111,6 +126,9 @@ class SideBarAnimated extends StatefulWidget {
 
   /// Custom typography style for disabled navigation items.
   final TextStyle? disabledTextStyle;
+
+  /// Custom typography style for non-selectable [SideBarItemType.action] items.
+  final TextStyle? actionTextStyle;
 
   /// Color of the section divider line.
   final Color dividerColor;
@@ -177,6 +195,7 @@ class SideBarAnimated extends StatefulWidget {
     required this.sidebarItems,
     this.widthSwitch = 700,
     this.onTap,
+    this.onActionTap,
     this.controller,
     this.isMinimized,
     this.onMinimizeChanged,
@@ -200,11 +219,14 @@ class SideBarAnimated extends StatefulWidget {
     this.selectedIconColor = Colors.white,
     this.unselectedIconColor = const Color(0xffA0A5A9),
     this.disabledIconColor,
+    this.actionIconColor,
     this.unSelectedTextColor = const Color(0xffA0A5A9),
     this.disabledTextColor,
+    this.actionTextColor,
     this.textStyle,
     this.selectedTextStyle,
     this.disabledTextStyle,
+    this.actionTextStyle,
     this.dividerColor = const Color(0xff929292),
     this.dividerHeight = 12,
     this.dividerThickness = 0.2,
@@ -260,11 +282,32 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
     return _internalMinimized;
   }
 
+  int _resolveSelectableIndex(int candidateIndex) {
+    if (candidateIndex >= 0 &&
+        candidateIndex < widget.sidebarItems.length &&
+        !widget.sidebarItems[candidateIndex].isAction) {
+      return candidateIndex;
+    }
+    for (int i = 0; i < widget.sidebarItems.length; i++) {
+      if (widget.sidebarItems[i].isSelectable) {
+        return i;
+      }
+    }
+    for (int i = 0; i < widget.sidebarItems.length; i++) {
+      if (!widget.sidebarItems[i].isAction) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.controller?.selectedIndex ?? widget.initialIndex;
-    _targetTop = _calculateItemTop(_currentIndex);
+    _currentIndex = _resolveSelectableIndex(
+      widget.controller?.selectedIndex ?? widget.initialIndex,
+    );
+    _targetTop = _currentIndex >= 0 ? _calculateItemTop(_currentIndex) : 0;
     _previousTop = _targetTop;
     _internalMinimized = widget.isMinimized ?? widget.controller?.isMinimized ?? false;
 
@@ -303,6 +346,23 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
         curve: widget.itemTransitionCurve,
       );
     }
+
+    final resolvedIndex = _resolveSelectableIndex(_currentIndex);
+    if (resolvedIndex != _currentIndex) {
+      _currentIndex = resolvedIndex;
+      _targetTop = _currentIndex >= 0 ? _calculateItemTop(_currentIndex) : 0;
+      _previousTop = _targetTop;
+    } else if (_currentIndex >= 0 &&
+        (oldWidget.itemHeight != widget.itemHeight ||
+            oldWidget.itemSpacing != widget.itemSpacing ||
+            oldWidget.dividerHeight != widget.dividerHeight ||
+            oldWidget.settingsDivider != widget.settingsDivider ||
+            oldWidget.sidebarItems.length != widget.sidebarItems.length)) {
+      _targetTop = _calculateItemTop(_currentIndex);
+      if (_transitionController.isCompleted) {
+        _previousTop = _targetTop;
+      }
+    }
   }
 
   @override
@@ -338,12 +398,15 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
     Curve? curveOverride,
   }) {
     if (newIndex < 0 || newIndex >= widget.sidebarItems.length) return;
-    if (widget.sidebarItems[newIndex].isDisabled) return;
+    final targetItem = widget.sidebarItems[newIndex];
+    if (targetItem.isDisabled || targetItem.isAction) return;
 
     final prevIndex = _currentIndex;
     if (prevIndex == newIndex && _transitionController.isCompleted) return;
 
-    final currentTop = lerpDouble(_previousTop, _targetTop, _animation.value) ?? _targetTop;
+    final currentTop = prevIndex >= 0
+        ? (lerpDouble(_previousTop, _targetTop, _animation.value) ?? _targetTop)
+        : _calculateItemTop(newIndex);
 
     setState(() {
       _currentIndex = newIndex;
@@ -380,13 +443,21 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
 
   void _onItemTapped(int index) {
     if (index < 0 || index >= widget.sidebarItems.length) return;
-    if (widget.sidebarItems[index].isDisabled) return;
+    final item = widget.sidebarItems[index];
+    if (item.isDisabled) return;
+
+    if (item.isAction) {
+      item.onTap?.call();
+      widget.onActionTap?.call(index);
+      return;
+    }
 
     if (widget.controller != null) {
       widget.controller!.selectIndex(index);
     } else {
       _animateToIndex(index);
     }
+    item.onTap?.call();
     widget.onTap?.call(index);
   }
 
@@ -423,6 +494,13 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
           );
     }
 
+    if (item.isAction) {
+      return widget.actionTextStyle ??
+          baseStyle.copyWith(
+            color: widget.actionTextColor ?? widget.unSelectedTextColor,
+          );
+    }
+
     if (isSelected) {
       return widget.selectedTextStyle ??
           baseStyle.copyWith(
@@ -438,6 +516,9 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
     if (item.isDisabled) {
       return widget.disabledIconColor ??
           widget.unselectedIconColor.withValues(alpha: 0.38);
+    }
+    if (item.isAction) {
+      return widget.actionIconColor ?? widget.unselectedIconColor;
     }
     if (isSelected) {
       return widget.selectedIconColor;
@@ -537,9 +618,7 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
     final isExpanded = !isEffectiveMinimized;
 
     final totalHeight = _calculateTotalHeight();
-    final safeIndex = (_currentIndex >= 0 && _currentIndex < widget.sidebarItems.length)
-        ? _currentIndex
-        : 0;
+    final safeIndex = _resolveSelectableIndex(_currentIndex);
 
     final effectiveTransitionType = _activeTransitionType ?? widget.transitionType;
 
@@ -608,7 +687,7 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
                     }
                   }
                   final item = widget.sidebarItems[index];
-                  final isSelected = index == safeIndex;
+                  final isSelected = index == safeIndex && !item.isAction;
                   itemChildren.add(
                     SideBarItemTile(
                       item: item,
@@ -635,20 +714,21 @@ class _SideBarAnimatedState extends State<SideBarAnimated>
                     height: totalHeight,
                     child: Stack(
                       children: [
-                        AnimatedBuilder(
-                          animation: _animation,
-                          child: FloatingIndicator(
-                            color: widget.animatedContainerColor,
-                            borderRadius: widget.itemBorderRadius,
-                            height: widget.itemHeight,
+                        if (safeIndex >= 0)
+                          AnimatedBuilder(
+                            animation: _animation,
+                            child: FloatingIndicator(
+                              color: widget.animatedContainerColor,
+                              borderRadius: widget.itemBorderRadius,
+                              height: widget.itemHeight,
+                            ),
+                            builder: (context, indicatorChild) {
+                              return _buildIndicatorWidget(
+                                type: effectiveTransitionType,
+                                indicatorChild: indicatorChild!,
+                              );
+                            },
                           ),
-                          builder: (context, indicatorChild) {
-                            return _buildIndicatorWidget(
-                              type: effectiveTransitionType,
-                              indicatorChild: indicatorChild!,
-                            );
-                          },
-                        ),
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,

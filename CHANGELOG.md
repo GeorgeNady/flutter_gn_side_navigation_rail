@@ -1,3 +1,14 @@
+## 2.3.0
+
+* **Non-Selectable Action Items**:
+  * Added `SideBarItemType` enum (`navigation`, `action`) so sidebar items can act as one-off command buttons (such as **Logout**, **Sync**, or **Refresh**) without changing the selected index or moving the floating selection indicator.
+  * Added `SideBarItem.type`, per-item `SideBarItem.onTap`, convenience `SideBarItem.action(...)` named constructor, and `isAction` / `isSelectable` helpers.
+  * Added `SideBarAnimated.onActionTap` callback for index-based action handling, plus optional `actionIconColor`, `actionTextColor`, and `actionTextStyle` styling overrides.
+  * Added automatic selection fallback when `initialIndex` points to an action item, and cleanly hides the floating indicator when all items are action items.
+* **Example Studio & Code Exporter**:
+  * Added default `Sync` and `Logout` action items with live SnackBar feedback, an `Add Action` button, and per-item Navigation/Action type toggling in the Items inspector.
+  * Updated `side_bar_code_exporter` to emit `SideBarItem.action(...)`, `onActionTap`, and `flutter_gn_side_navigation_rail: ^2.3.0` for both StatefulWidget and BLoC exports.
+
 ## 2.2.1
 
 * Example studio revamp: replaced the single-file example playground with a three-zone studio layout (live rail, wide destination preview stage, and a mode-aware Customize/Code right inspector that collapses into an end drawer on compact screens).

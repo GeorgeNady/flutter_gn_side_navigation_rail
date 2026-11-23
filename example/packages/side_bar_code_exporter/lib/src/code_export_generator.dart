@@ -171,26 +171,33 @@ class CodeExportGenerator {
     }
   }
 
+  static final Map<int, String> _knownIcons = <int, String>{
+    Icons.dashboard.codePoint: 'Icons.dashboard',
+    Icons.dashboard_outlined.codePoint: 'Icons.dashboard_outlined',
+    Icons.analytics.codePoint: 'Icons.analytics',
+    Icons.analytics_outlined.codePoint: 'Icons.analytics_outlined',
+    Icons.notifications.codePoint: 'Icons.notifications',
+    Icons.notifications_none.codePoint: 'Icons.notifications_none',
+    Icons.chat_bubble.codePoint: 'Icons.chat_bubble',
+    Icons.chat_bubble_outline.codePoint: 'Icons.chat_bubble_outline',
+    Icons.lock.codePoint: 'Icons.lock',
+    Icons.lock_outline.codePoint: 'Icons.lock_outline',
+    Icons.settings.codePoint: 'Icons.settings',
+    Icons.settings_outlined.codePoint: 'Icons.settings_outlined',
+    Icons.folder.codePoint: 'Icons.folder',
+    Icons.folder_outlined.codePoint: 'Icons.folder_outlined',
+    Icons.sync.codePoint: 'Icons.sync',
+    Icons.refresh.codePoint: 'Icons.refresh',
+    Icons.logout.codePoint: 'Icons.logout',
+    Icons.bolt.codePoint: 'Icons.bolt',
+    Icons.bolt_outlined.codePoint: 'Icons.bolt_outlined',
+  };
+
   static String _iconDataToCode(IconData icon) {
     final codePoint = icon.codePoint;
-    const knownIcons = <int, String>{
-      0xe1b1: 'Icons.dashboard',
-      0xef5a: 'Icons.dashboard_outlined',
-      0xe06e: 'Icons.analytics',
-      0xee85: 'Icons.analytics_outlined',
-      0xe44f: 'Icons.notifications',
-      0xe451: 'Icons.notifications_none',
-      0xe153: 'Icons.chat_bubble',
-      0xe154: 'Icons.chat_bubble_outline',
-      0xe3ae: 'Icons.lock',
-      0xe3b0: 'Icons.lock_outline',
-      0xe57f: 'Icons.settings',
-      0xef6e: 'Icons.settings_outlined',
-      0xe2a3: 'Icons.folder',
-      0xef9c: 'Icons.folder_outlined',
-    };
-    if (knownIcons.containsKey(codePoint)) {
-      return knownIcons[codePoint]!;
+    final known = _knownIcons[codePoint];
+    if (known != null) {
+      return known;
     }
     return "IconData(0x${codePoint.toRadixString(16)}, fontFamily: '${icon.fontFamily ?? 'MaterialIcons'}')";
   }
@@ -210,21 +217,35 @@ class CodeExportGenerator {
   static String _buildItemsListLiteral(List<SideBarItem> items, String indent) {
     final buf = StringBuffer('[\n');
     for (final item in items) {
-      buf.writeln('$indent  const SideBarItem(');
-      buf.writeln('$indent    iconSelected: ${_iconDataToCode(item.iconSelected)},');
-      if (item.iconUnselected != null) {
-        buf.writeln(
-            '$indent    iconUnselected: ${_iconDataToCode(item.iconUnselected!)},');
+      if (item.isAction) {
+        buf.writeln('$indent  const SideBarItem.action(');
+        buf.writeln('$indent    icon: ${_iconDataToCode(item.iconSelected)},');
+        buf.writeln("$indent    text: '${item.text.replaceAll("'", "\\'")}',");
+        if (item.isDisabled) {
+          buf.writeln('$indent    isDisabled: true,');
+        }
+        if (item.tooltip != null && item.tooltip!.isNotEmpty) {
+          buf.writeln(
+              "$indent    tooltip: '${item.tooltip!.replaceAll("'", "\\'")}',");
+        }
+        buf.writeln('$indent  ),');
+      } else {
+        buf.writeln('$indent  const SideBarItem(');
+        buf.writeln('$indent    iconSelected: ${_iconDataToCode(item.iconSelected)},');
+        if (item.iconUnselected != null) {
+          buf.writeln(
+              '$indent    iconUnselected: ${_iconDataToCode(item.iconUnselected!)},');
+        }
+        buf.writeln("$indent    text: '${item.text.replaceAll("'", "\\'")}',");
+        if (item.isDisabled) {
+          buf.writeln('$indent    isDisabled: true,');
+        }
+        if (item.tooltip != null && item.tooltip!.isNotEmpty) {
+          buf.writeln(
+              "$indent    tooltip: '${item.tooltip!.replaceAll("'", "\\'")}',");
+        }
+        buf.writeln('$indent  ),');
       }
-      buf.writeln("$indent    text: '${item.text.replaceAll("'", "\\'")}',");
-      if (item.isDisabled) {
-        buf.writeln('$indent    isDisabled: true,');
-      }
-      if (item.tooltip != null && item.tooltip!.isNotEmpty) {
-        buf.writeln(
-            "$indent    tooltip: '${item.tooltip!.replaceAll("'", "\\'")}',");
-      }
-      buf.writeln('$indent  ),');
     }
     buf.write('$indent]');
     return buf.toString();
@@ -236,6 +257,7 @@ class CodeExportGenerator {
     required String controllerExpr,
     required String isMinimizedCheckExpr,
     required String onTapExpr,
+    required String onActionTapExpr,
     required String onMinimizeChangedExpr,
   }) {
     final b = StringBuffer();
@@ -247,6 +269,9 @@ class CodeExportGenerator {
     }
     b.writeln('${indent}initialIndex: ${cfg.initialIndex},');
     b.writeln('${indent}onTap: $onTapExpr,');
+    if (cfg.sidebarItems.any((item) => item.isAction)) {
+      b.writeln('${indent}onActionTap: $onActionTapExpr,');
+    }
     b.writeln('${indent}onMinimizeChanged: $onMinimizeChangedExpr,');
     b.writeln('${indent}sidebarItems: _sidebarItems,');
     b.writeln('${indent}widthSwitch: ${cfg.widthSwitch.toStringAsFixed(1)},');
@@ -468,6 +493,8 @@ ${_buildSideBarWidgetArgs(
       controllerExpr: '_controller',
       isMinimizedCheckExpr: '_controller.isMinimized',
       onTapExpr: '(index) {}',
+      onActionTapExpr:
+          "(index) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Triggered action: \${_sidebarItems[index].text}')))",
       onMinimizeChangedExpr: '(isMinimized) {}',
     )}              ),
               Expanded(
@@ -510,7 +537,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_gn_side_navigation_rail: ^2.2.1
+  flutter_gn_side_navigation_rail: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -753,6 +780,8 @@ ${_buildSideBarWidgetArgs(
       controllerExpr: 'bloc.sideBarController',
       isMinimizedCheckExpr: 'state.isMinimized',
       onTapExpr: '(index) => bloc.add(NavigationItemSelected(index))',
+      onActionTapExpr:
+          "(index) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Triggered action: \${_sidebarItems[index].text}')))",
       onMinimizeChangedExpr:
           '(isMinimized) => bloc.add(NavigationMinimizeChanged(isMinimized))',
     )}              ),
@@ -806,7 +835,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_gn_side_navigation_rail: ^2.2.1
+  flutter_gn_side_navigation_rail: ^2.3.0
   flutter_bloc: ^9.0.0
   equatable: ^2.0.7
 

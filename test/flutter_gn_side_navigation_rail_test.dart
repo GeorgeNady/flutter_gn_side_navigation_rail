@@ -636,4 +636,219 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(AnimatedContainer)).height, 1200.0);
   });
+
+  test('SideBarItem.action sets non-selectable action type and callback', () {
+    var tapped = false;
+    final item = SideBarItem.action(
+      icon: Icons.logout,
+      text: 'Logout',
+      tooltip: 'Sign out of workspace',
+      onTap: () => tapped = true,
+    );
+
+    expect(item.type, SideBarItemType.action);
+    expect(item.isAction, isTrue);
+    expect(item.isSelectable, isFalse);
+    expect(item.iconSelected, Icons.logout);
+    expect(item.iconUnselected, Icons.logout);
+    expect(item.tooltip, 'Sign out of workspace');
+    item.onTap?.call();
+    expect(tapped, isTrue);
+  });
+
+  testWidgets(
+      'Action items invoke item.onTap and onActionTap without changing selection or moving indicator',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = SideBarController(initialIndex: 0);
+    final tappedNavIndices = <int>[];
+    final tappedActionIndices = <int>[];
+    var syncClicks = 0;
+    var logoutClicks = 0;
+    var disabledActionClicks = 0;
+
+    final items = [
+      const SideBarItem(
+        iconSelected: Icons.dashboard,
+        text: 'Dashboard',
+      ),
+      const SideBarItem(
+        iconSelected: Icons.settings,
+        text: 'Settings',
+      ),
+      SideBarItem.action(
+        icon: Icons.sync,
+        text: 'Sync',
+        onTap: () => syncClicks++,
+      ),
+      SideBarItem(
+        iconSelected: Icons.refresh,
+        text: 'Refresh (Disabled)',
+        type: SideBarItemType.action,
+        isDisabled: true,
+        onTap: () => disabledActionClicks++,
+      ),
+      SideBarItem.action(
+        icon: Icons.logout,
+        text: 'Logout',
+        onTap: () => logoutClicks++,
+      ),
+    ];
+
+    const indicatorColor = Color(0xFF4F46E5);
+    const actionColor = Color(0xFFEF4444);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SideBarAnimated(
+            controller: controller,
+            sidebarItems: items,
+            animatedContainerColor: indicatorColor,
+            actionIconColor: actionColor,
+            actionTextColor: actionColor,
+            onTap: tappedNavIndices.add,
+            onActionTap: tappedActionIndices.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Finder indicatorFinder() => find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).color == indicatorColor,
+        );
+
+    final initialIndicatorTop = tester.getTopLeft(indicatorFinder()).dy;
+
+    // Tap Sync action item
+    await tester.tap(find.text('Sync'));
+    await tester.pumpAndSettle();
+
+    expect(syncClicks, 1);
+    expect(tappedActionIndices, [2]);
+    expect(tappedNavIndices, isEmpty);
+    expect(controller.selectedIndex, 0);
+    expect(tester.getTopLeft(indicatorFinder()).dy, initialIndicatorTop);
+
+    // Tap disabled action item - should do nothing
+    await tester.tap(find.text('Refresh (Disabled)'));
+    await tester.pumpAndSettle();
+
+    expect(disabledActionClicks, 0);
+    expect(tappedActionIndices, [2]);
+    expect(controller.selectedIndex, 0);
+
+    // Tap Logout action item
+    await tester.tap(find.text('Logout'));
+    await tester.pumpAndSettle();
+
+    expect(logoutClicks, 1);
+    expect(tappedActionIndices, [2, 4]);
+    expect(tappedNavIndices, isEmpty);
+    expect(controller.selectedIndex, 0);
+    expect(tester.getTopLeft(indicatorFinder()).dy, initialIndicatorTop);
+
+    // Verify actionIconColor and actionTextColor applied to action items
+    final syncIcon = tester.widget<Icon>(find.byIcon(Icons.sync));
+    expect(syncIcon.color, actionColor);
+    final syncText = tester.widget<Text>(find.text('Sync'));
+    expect(syncText.style?.color, actionColor);
+
+    // Tapping a normal navigation item still selects and moves indicator
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(tappedNavIndices, [1]);
+    expect(controller.selectedIndex, 1);
+    expect(
+      tester.getTopLeft(indicatorFinder()).dy,
+      greaterThan(initialIndicatorTop),
+    );
+  });
+
+  testWidgets(
+      'SideBarAnimated skips action initialIndex and hides indicator when all items are actions',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const indicatorColor = Color(0xFF4F46E5);
+    var refreshClicks = 0;
+
+    // 1. initialIndex points to action item -> falls back to first navigation item
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SideBarAnimated(
+            initialIndex: 0,
+            animatedContainerColor: indicatorColor,
+            sidebarItems: [
+              SideBarItem.action(
+                icon: Icons.refresh,
+                text: 'Refresh',
+                onTap: () => refreshClicks++,
+              ),
+              const SideBarItem(
+                iconSelected: Icons.dashboard,
+                text: 'Dashboard',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final indicatorFinder = find.byWidgetPredicate(
+      (w) =>
+          w is Container &&
+          w.decoration is BoxDecoration &&
+          (w.decoration as BoxDecoration).color == indicatorColor,
+    );
+    expect(indicatorFinder, findsOneWidget);
+    // Indicator aligns with Dashboard (index 1), not Refresh (index 0)
+    expect(
+      tester.getTopLeft(indicatorFinder).dy,
+      greaterThan(tester.getTopLeft(find.text('Refresh')).dy),
+    );
+
+    // 2. All items are action items -> no indicator rendered, taps still fire
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SideBarAnimated(
+            animatedContainerColor: indicatorColor,
+            sidebarItems: [
+              SideBarItem.action(
+                icon: Icons.refresh,
+                text: 'Refresh',
+                onTap: () => refreshClicks++,
+              ),
+              SideBarItem.action(
+                icon: Icons.logout,
+                text: 'Logout',
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(indicatorFinder, findsNothing);
+    await tester.tap(find.text('Refresh'));
+    await tester.pumpAndSettle();
+    expect(refreshClicks, 1);
+  });
 }

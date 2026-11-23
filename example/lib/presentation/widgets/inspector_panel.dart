@@ -628,6 +628,11 @@ class _InspectorPanelState extends State<InspectorPanel> {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Item'),
               ),
+              FilledButton.tonalIcon(
+                onPressed: () => bloc.add(const PlaygroundActionItemAdded()),
+                icon: const Icon(Icons.bolt, size: 18),
+                label: const Text('Add Action'),
+              ),
               OutlinedButton.icon(
                 onPressed: () => bloc.add(const PlaygroundItemsReset()),
                 icon: const Icon(Icons.restore, size: 18),
@@ -663,16 +668,45 @@ class _InspectorPanelState extends State<InspectorPanel> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                item.text,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: item.isDisabled
-                                      ? colors.textSecondary
-                                      : colors.textPrimary,
-                                ),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    item.text,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: item.isDisabled
+                                          ? colors.textSecondary
+                                          : colors.textPrimary,
+                                    ),
+                                  ),
+                                  if (item.isAction)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colors.accentMuted,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Action',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: colors.accentForeground,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                               if (item.tooltip != null &&
                                   item.tooltip!.isNotEmpty)
@@ -685,6 +719,26 @@ class _InspectorPanelState extends State<InspectorPanel> {
                                   ),
                                 ),
                             ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: item.isAction
+                              ? 'Switch ${item.text} to navigation'
+                              : 'Switch ${item.text} to action',
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          onPressed: () =>
+                              bloc.add(PlaygroundItemTypeToggled(index)),
+                          icon: Icon(
+                            item.isAction
+                                ? Icons.bolt
+                                : Icons.navigation_outlined,
+                            size: 18,
+                            color: item.isAction
+                                ? colors.accentForeground
+                                : colors.textSecondary,
                           ),
                         ),
                         Tooltip(

@@ -12,6 +12,7 @@ A sleek, responsive, and animated side navigation rail / sidebar for Flutter app
 - **Responsive & Adaptive**: Smoothly expands and collapses based on a configurable screen width breakpoint (`widthSwitch`) or manual toggle.
 - **External State Management**: Expose and control navigation and minimize states using `SideBarController` or direct `isMinimized` / `onMinimizeChanged` properties.
 - **Native Typography**: Inherits your project's native theme font family automatically without imposing hardcoded fonts.
+- **Non-Selectable Action Items**: Add command buttons like **Logout**, **Sync**, or **Refresh** using `SideBarItem.action(...)` or `SideBarItemType.action` that execute callbacks without changing the active selection or moving the floating indicator.
 - **Disabled Item States**: Mark items with `isDisabled: true` to prevent interaction, dim their appearance, and display custom tooltips.
 - **Custom Header & Footer Widgets**: Render any custom widget (logo image, brand banner, avatar, text) via `headerWidget` and `footerWidget`.
 - **Custom Toggle Icons**: Customize the expand/collapse button in both states using `expandedToggleIcon` / `collapsedToggleIcon` or custom widgets.
@@ -82,6 +83,22 @@ class _HomeScreenState extends State<HomeScreen> {
       iconSelected: Icons.settings,
       iconUnselected: Icons.settings_outlined,
       text: 'Settings',
+    ),
+    SideBarItem.action(
+      icon: Icons.sync,
+      text: 'Sync',
+      tooltip: 'Sync data now',
+      onTap: () {
+        // Trigger sync without changing the active destination
+      },
+    ),
+    SideBarItem.action(
+      icon: Icons.logout,
+      text: 'Logout',
+      tooltip: 'Sign out',
+      onTap: () {
+        // Trigger logout flow
+      },
     ),
   ];
 
@@ -172,6 +189,37 @@ SideBarAnimated(
 )
 ```
 
+### Non-Selectable Action Items (Logout, Sync, Refresh)
+
+Use `SideBarItem.action(...)` or `SideBarItem(type: SideBarItemType.action, ...)` for items that trigger an action without becoming selected or moving the floating indicator:
+
+```dart
+SideBarAnimated(
+  controller: _controller,
+  actionIconColor: Colors.amberAccent,
+  actionTextColor: Colors.amberAccent,
+  onActionTap: (index) {
+    // Optional centralized handler for all action items
+  },
+  sidebarItems: [
+    const SideBarItem(
+      iconSelected: Icons.dashboard,
+      text: 'Dashboard',
+    ),
+    SideBarItem.action(
+      icon: Icons.refresh,
+      text: 'Refresh',
+      onTap: () => _refreshWorkspace(),
+    ),
+    SideBarItem.action(
+      icon: Icons.logout,
+      text: 'Logout',
+      onTap: () => _signOut(),
+    ),
+  ],
+)
+```
+
 ## Parameters
 
 ### SideBarAnimated
@@ -189,18 +237,22 @@ SideBarAnimated(
 | `headerWidget` | `Widget?` | `null` | Custom widget rendered at the top of the sidebar (logo, icon, branding row). |
 | `footerWidget` | `Widget?` | `null` | Custom widget rendered at the bottom of the sidebar. |
 | `widthSwitch` | `double` | `700` | Screen width breakpoint to automatically toggle between full sidebar and collapsed rail. |
-| `onTap` | `ValueChanged<int>?` | `null` | Callback invoked with the selected item index when an enabled item is tapped. |
+| `onTap` | `ValueChanged<int>?` | `null` | Callback invoked with the selected item index when an enabled navigation item is tapped. |
+| `onActionTap` | `ValueChanged<int>?` | `null` | Callback invoked with the item index when an enabled `SideBarItemType.action` item is tapped (does not change selection). |
 | `initialIndex` | `int` | `0` | Initial active navigation item index when no controller is used. |
 | `sideBarColor` | `Color` | `Color(0xff1D1D1D)` | Background color of the sidebar container. |
 | `animatedContainerColor` | `Color` | `Color(0xff323232)` | Background color of the floating selection indicator container. |
 | `selectedIconColor` | `Color` | `Colors.white` | Color of active navigation icons. |
 | `unselectedIconColor` | `Color` | `Color(0xffA0A5A9)` | Color of inactive navigation icons. |
 | `disabledIconColor` | `Color?` | `dimmed` | Color of disabled navigation icons. |
+| `actionIconColor` | `Color?` | `unselectedIconColor` | Color of icons for non-selectable `SideBarItemType.action` items. |
 | `unSelectedTextColor` | `Color` | `Color(0xffA0A5A9)` | Text color of inactive navigation labels. |
 | `disabledTextColor` | `Color?` | `dimmed` | Text color of disabled navigation labels. |
+| `actionTextColor` | `Color?` | `unSelectedTextColor` | Text color of labels for non-selectable `SideBarItemType.action` items. |
 | `textStyle` | `TextStyle?` | `null` | Base text style for navigation items (inherits native theme font). |
 | `selectedTextStyle` | `TextStyle?` | `null` | Typography override for the selected item. |
 | `disabledTextStyle` | `TextStyle?` | `null` | Typography override for disabled items. |
+| `actionTextStyle` | `TextStyle?` | `null` | Typography override for non-selectable action items. |
 | `sideBarWidth` | `double` | `260` | Full width of the expanded sidebar. |
 | `sideBarSmallWidth` | `double` | `84` | Width of the sidebar when collapsed into rail mode. |
 | `shrinkWrap` | `bool` | `false` | Whether the sidebar shrinks its height to wrap content instead of filling parent height. |
@@ -232,11 +284,20 @@ SideBarAnimated(
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `iconSelected` | `IconData` | **Required** | Icon shown when the item is active / selected. |
+| `iconSelected` | `IconData` | **Required** | Icon shown when the item is active / selected (or default icon for action items). |
 | `iconUnselected` | `IconData?` | `null` | Optional icon shown when inactive (defaults to `iconSelected`). |
 | `text` | `String` | **Required** | Label text displayed next to the icon in expanded mode. |
+| `type` | `SideBarItemType` | `SideBarItemType.navigation` | Interaction behavior (`navigation` for selectable destinations, `action` for non-selectable commands). |
+| `onTap` | `VoidCallback?` | `null` | Optional per-item callback invoked when tapped (ideal for `SideBarItemType.action` commands). |
 | `isDisabled` | `bool` | `false` | Whether this item is disabled. Disabled items cannot be clicked. |
 | `tooltip` | `String?` | `null` | Optional tooltip message shown on hover or long-press. |
+
+### SideBarItemType
+
+| Value | Description |
+|---|---|
+| `navigation` | Standard selectable navigation item that updates selection and animates the floating indicator. |
+| `action` | Non-selectable action item (e.g., Logout, Sync, Refresh) that fires `item.onTap` and `onActionTap` without changing selection. |
 
 ### SideBarTransitionType
 

@@ -109,6 +109,18 @@ final class PlaygroundRailTapped extends PlaygroundEvent {
   List<Object?> get props => [index];
 }
 
+/// Records a tap on a non-selectable action item at [index].
+final class PlaygroundRailActionTapped extends PlaygroundEvent {
+  /// Zero-based index of the tapped action item.
+  final int index;
+
+  /// Creates a rail action tap event.
+  const PlaygroundRailActionTapped(this.index);
+
+  @override
+  List<Object?> get props => [index];
+}
+
 /// Records a minimize callback reported by `SideBarAnimated`.
 final class PlaygroundRailMinimizeReported extends PlaygroundEvent {
   /// Whether the sidebar is now minimized.
@@ -154,10 +166,28 @@ final class PlaygroundItemDisabledToggled extends PlaygroundEvent {
   List<Object?> get props => [index];
 }
 
+/// Toggles the item at [index] between navigation and non-selectable action.
+final class PlaygroundItemTypeToggled extends PlaygroundEvent {
+  /// Zero-based index of the item to toggle.
+  final int index;
+
+  /// Creates an item type toggle event.
+  const PlaygroundItemTypeToggled(this.index);
+
+  @override
+  List<Object?> get props => [index];
+}
+
 /// Inserts a new custom project item before the trailing item.
 final class PlaygroundItemAdded extends PlaygroundEvent {
   /// Creates an add item event.
   const PlaygroundItemAdded();
+}
+
+/// Appends a new non-selectable action item (e.g. Refresh) to the rail.
+final class PlaygroundActionItemAdded extends PlaygroundEvent {
+  /// Creates an add action item event.
+  const PlaygroundActionItemAdded();
 }
 
 /// Removes the sidebar item at [index] when more than two items exist.

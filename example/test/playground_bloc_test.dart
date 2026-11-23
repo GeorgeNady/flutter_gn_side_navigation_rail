@@ -106,5 +106,32 @@ void main() {
       expect(bloc.state.isExportingZip, isFalse);
       expect(bloc.state.lastExportError, contains('Disk full'));
     });
+
+    test('triggers action items, adds action items, and toggles item type',
+        () async {
+      final syncIndex =
+          bloc.state.config.sidebarItems.indexWhere((i) => i.text == 'Sync');
+      expect(syncIndex, greaterThanOrEqualTo(0));
+      expect(bloc.state.config.sidebarItems[syncIndex].isAction, isTrue);
+
+      bloc.add(PlaygroundRailActionTapped(syncIndex));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.lastActionLabel, 'Sync');
+      expect(bloc.state.actionTriggerCount, 1);
+      expect(bloc.state.controllerSelectedIndex, 0);
+
+      final beforeCount = bloc.state.config.sidebarItems.length;
+      bloc.add(const PlaygroundActionItemAdded());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.config.sidebarItems.length, beforeCount + 1);
+      expect(bloc.state.config.sidebarItems.last.isAction, isTrue);
+
+      bloc.add(const PlaygroundItemTypeToggled(0));
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.config.sidebarItems[0].isAction, isTrue);
+      expect(bloc.state.controllerSelectedIndex, isNot(0));
+    });
   });
 }

@@ -126,11 +126,14 @@ class PlaygroundBloc extends Bloc<PlaygroundEvent, PlaygroundState> {
     on<PlaygroundRailMinimizeToggled>(_onRailMinimizeToggled);
     on<PlaygroundHeightModeChanged>(_onHeightModeChanged);
     on<PlaygroundRailTapped>(_onRailTapped);
+    on<PlaygroundRailActionTapped>(_onRailActionTapped);
     on<PlaygroundRailMinimizeReported>(_onRailMinimizeReported);
     on<PlaygroundControllerSynced>(_onControllerSynced);
     on<PlaygroundConfigUpdated>(_onConfigUpdated);
     on<PlaygroundItemDisabledToggled>(_onItemDisabledToggled);
+    on<PlaygroundItemTypeToggled>(_onItemTypeToggled);
     on<PlaygroundItemAdded>(_onItemAdded);
+    on<PlaygroundActionItemAdded>(_onActionItemAdded);
     on<PlaygroundItemRemoved>(_onItemRemoved);
     on<PlaygroundItemsReset>(_onItemsReset);
     on<PlaygroundOverrideTransitionChanged>(_onOverrideTransitionChanged);
@@ -285,6 +288,22 @@ class PlaygroundBloc extends Bloc<PlaygroundEvent, PlaygroundState> {
     emit(state.copyWith(lastTappedIndex: event.index));
   }
 
+  void _onRailActionTapped(
+    PlaygroundRailActionTapped event,
+    Emitter<PlaygroundState> emit,
+  ) {
+    if (event.index < 0 || event.index >= state.config.sidebarItems.length) {
+      return;
+    }
+    final actionItem = state.config.sidebarItems[event.index];
+    emit(
+      state.copyWith(
+        lastActionLabel: actionItem.text,
+        actionTriggerCount: state.actionTriggerCount + 1,
+      ),
+    );
+  }
+
   void _onRailMinimizeReported(
     PlaygroundRailMinimizeReported event,
     Emitter<PlaygroundState> emit,
@@ -342,12 +361,53 @@ class PlaygroundBloc extends Bloc<PlaygroundEvent, PlaygroundState> {
       text: current.text,
       isDisabled: !current.isDisabled,
       tooltip: current.tooltip,
+      type: current.type,
+      onTap: current.onTap,
     );
     final nextConfig = state.config.copyWith(sidebarItems: items);
     emit(
       state.copyWith(
         config: nextConfig,
         clearActivePreset: true,
+        generatedFiles: _regenerate(nextConfig, state.exportArchitecture),
+      ),
+    );
+  }
+
+  void _onItemTypeToggled(
+    PlaygroundItemTypeToggled event,
+    Emitter<PlaygroundState> emit,
+  ) {
+    final items = List<SideBarItem>.from(state.config.sidebarItems);
+    final current = items[event.index];
+    final nextType = current.isAction
+        ? SideBarItemType.navigation
+        : SideBarItemType.action;
+    items[event.index] = SideBarItem(
+      iconSelected: current.iconSelected,
+      iconUnselected: current.iconUnselected,
+      text: current.text,
+      isDisabled: current.isDisabled,
+      tooltip: current.tooltip,
+      type: nextType,
+      onTap: current.onTap,
+    );
+    if (nextType == SideBarItemType.action &&
+        sideBarController.selectedIndex == event.index) {
+      final fallback = items.indexWhere((item) => item.isSelectable);
+      if (fallback >= 0) {
+        sideBarController.selectIndex(
+          fallback,
+          transitionType: SideBarTransitionType.none,
+        );
+      }
+    }
+    final nextConfig = state.config.copyWith(sidebarItems: items);
+    emit(
+      state.copyWith(
+        config: nextConfig,
+        clearActivePreset: true,
+        controllerSelectedIndex: sideBarController.selectedIndex,
         generatedFiles: _regenerate(nextConfig, state.exportArchitecture),
       ),
     );
@@ -366,6 +426,29 @@ class PlaygroundBloc extends Bloc<PlaygroundEvent, PlaygroundState> {
         iconUnselected: Icons.folder_outlined,
         text: 'Project $nextNum',
         tooltip: 'Custom workspace #$nextNum',
+      ),
+    );
+    final nextConfig = state.config.copyWith(sidebarItems: items);
+    emit(
+      state.copyWith(
+        config: nextConfig,
+        clearActivePreset: true,
+        generatedFiles: _regenerate(nextConfig, state.exportArchitecture),
+      ),
+    );
+  }
+
+  void _onActionItemAdded(
+    PlaygroundActionItemAdded event,
+    Emitter<PlaygroundState> emit,
+  ) {
+    final items = List<SideBarItem>.from(state.config.sidebarItems);
+    final actionCount = items.where((item) => item.isAction).length + 1;
+    items.add(
+      SideBarItem.action(
+        icon: Icons.refresh,
+        text: 'Refresh $actionCount',
+        tooltip: 'One-off refresh action #$actionCount',
       ),
     );
     final nextConfig = state.config.copyWith(sidebarItems: items);

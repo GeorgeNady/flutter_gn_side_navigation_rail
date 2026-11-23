@@ -71,6 +71,7 @@ class LiveNavigationRail extends StatelessWidget {
       isMinimized: cfg.useDirectIsMinimized ? cfg.directIsMinimized : null,
       initialIndex: cfg.initialIndex.clamp(0, cfg.sidebarItems.length - 1),
       onTap: (index) => bloc.add(PlaygroundRailTapped(index)),
+      onActionTap: (index) => bloc.add(PlaygroundRailActionTapped(index)),
       onMinimizeChanged: (minimized) =>
           bloc.add(PlaygroundRailMinimizeReported(minimized)),
       sidebarItems: cfg.sidebarItems,

@@ -244,4 +244,91 @@ void main() {
     expect(fixedStateful, contains('height: 450.0,'));
     expect(fixedBloc, contains('height: 450.0,'));
   });
+
+  test('exports SideBarItem.action and onActionTap for StatefulWidget and BLoC', () {
+    const actionConfig = SideBarExportConfig(
+      useController: true,
+      useDirectIsMinimized: false,
+      directIsMinimized: false,
+      initialIndex: 0,
+      widthSwitch: 700,
+      sideBarWidth: 260,
+      sideBarSmallWidth: 84,
+      itemHeight: 48,
+      itemSpacing: 8,
+      borderRadius: 20,
+      itemBorderRadiusValue: 12,
+      marginAll: 20,
+      useCustomContentPadding: false,
+      contentPaddingHorizontal: 20,
+      contentPaddingVertical: 24,
+      sideBarColor: Color(0xff1D1D1D),
+      animatedContainerColor: Color(0xff323232),
+      selectedIconColor: Colors.white,
+      unselectedIconColor: Color(0xffA0A5A9),
+      useCustomDisabledIconColor: false,
+      disabledIconColor: Color(0xff555555),
+      unSelectedTextColor: Color(0xffA0A5A9),
+      useCustomDisabledTextColor: false,
+      disabledTextColor: Color(0xff555555),
+      hoverColor: Colors.black38,
+      splashColor: Colors.black87,
+      highlightColor: Colors.black,
+      useCustomTextStyle: false,
+      baseFontSize: 16,
+      baseFontWeight: FontWeight.normal,
+      useCustomSelectedTextStyle: false,
+      selectedTextColor: Colors.white,
+      selectedFontSize: 16,
+      selectedFontWeight: FontWeight.w600,
+      useCustomDisabledTextStyle: false,
+      disabledFontSize: 16,
+      disabledFontItalic: true,
+      settingsDivider: true,
+      dividerColor: Color(0xff929292),
+      dividerHeight: 12,
+      dividerThickness: 0.5,
+      transitionType: SideBarTransitionType.slide,
+      sideBarAnimationDurationMs: 700,
+      itemTransitionDurationMs: 400,
+      curveKey: 'easeOut',
+      itemTransitionCurveKey: 'easeOutCubic',
+      customTransitionMode: 'rotateScale',
+      showHeaderWidget: true,
+      showFooterWidget: false,
+      showToggleButton: true,
+      useCustomToggleButtonColor: false,
+      toggleButtonColor: Colors.deepPurpleAccent,
+      useCustomToggleWidgets: false,
+      expandedToggleIconKey: 'menu_open',
+      collapsedToggleIconKey: 'menu',
+      scrollPhysicsKey: 'bouncing',
+      sidebarItems: [
+        SideBarItem(iconSelected: Icons.dashboard, text: 'Dashboard'),
+        SideBarItem.action(
+          icon: Icons.sync,
+          text: 'Sync',
+          tooltip: 'Sync workspace data',
+        ),
+        SideBarItem.action(
+          icon: Icons.logout,
+          text: 'Logout',
+          tooltip: 'Sign out',
+        ),
+      ],
+    );
+
+    final statefulFiles = CodeExportGenerator.generateStatefulFiles(actionConfig);
+    final blocFiles = CodeExportGenerator.generateBlocFiles(actionConfig);
+
+    expect(statefulFiles['lib/main.dart'], contains('SideBarItem.action('));
+    expect(statefulFiles['lib/main.dart'], contains('Icons.sync'));
+    expect(statefulFiles['lib/main.dart'], contains('Icons.logout'));
+    expect(statefulFiles['lib/main.dart'], contains('onActionTap:'));
+    expect(statefulFiles['pubspec.yaml'], contains('^2.3.0'));
+
+    expect(blocFiles['lib/main.dart'], contains('SideBarItem.action('));
+    expect(blocFiles['lib/main.dart'], contains('onActionTap:'));
+    expect(blocFiles['pubspec.yaml'], contains('^2.3.0'));
+  });
 }

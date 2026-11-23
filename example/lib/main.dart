@@ -81,7 +81,20 @@ class _PlaygroundShellState extends State<PlaygroundShell> {
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
 
-    return BlocBuilder<PlaygroundBloc, PlaygroundState>(
+    return BlocConsumer<PlaygroundBloc, PlaygroundState>(
+      listenWhen: (previous, current) =>
+          previous.actionTriggerCount != current.actionTriggerCount &&
+          current.lastActionLabel != null,
+      listener: (context, state) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Action triggered: ${state.lastActionLabel}'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+      },
       builder: (context, state) {
         return LayoutBuilder(
           builder: (context, constraints) {

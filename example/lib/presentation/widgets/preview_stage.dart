@@ -675,7 +675,7 @@ class PreviewStage extends StatelessWidget {
   ) {
     const alerts = [
       (
-        'Release 2.2.1 build passed',
+        'Release 2.3.0 build passed',
         'All widget & layout checks green',
         'Just now',
         true,
